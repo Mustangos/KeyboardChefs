@@ -1,5 +1,6 @@
 #!/bin/bash
-# Installs BepInEx into Overcooked! 2 and builds KeyboardChefs.dll into its plugins folder.
+# Installs BepInEx into Overcooked! 2 and puts KeyboardChefs.dll into its plugins folder: the prebuilt
+# DLL next to this script (release zip) or one compiled from KeyboardChefs.cs (source checkout).
 set -euo pipefail
 
 GAME="${OC2_DIR:-$HOME/Library/Application Support/Steam/steamapps/common/Overcooked! 2}"
@@ -10,7 +11,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 MANAGED="$GAME/Overcooked2.app/Contents/Resources/Data/Managed"
 
 [ -d "$MANAGED" ] || { echo "Overcooked! 2 not found in: $GAME (set OC2_DIR)" >&2; exit 1; }
-[ -x "$DOTNET" ] || { echo ".NET SDK not found; install it into ~/.dotnet (see README)" >&2; exit 1; }
 
 if [ ! -f "$GAME/BepInEx/core/BepInEx.dll" ]; then
     tmp="$(mktemp -d)"
@@ -23,13 +23,19 @@ if [ ! -f "$GAME/BepInEx/core/BepInEx.dll" ]; then
     echo "BepInEx installed."
 fi
 
-CSC="$(ls -d "$(dirname "$(readlink -f "$DOTNET")")"/sdk/*/Roslyn/bincore/csc.dll | tail -1)"
-refs=()
-for f in "$MANAGED"/*.dll "$GAME/BepInEx/core/BepInEx.dll"; do refs+=("-r:$f"); done
 mkdir -p "$GAME/BepInEx/plugins"
-"$DOTNET" "$CSC" -nologo -noconfig -nostdlib -target:library -langversion:7.3 -optimize \
-    -out:"$GAME/BepInEx/plugins/KeyboardChefs.dll" "${refs[@]}" "$HERE/KeyboardChefs.cs"
-echo "Plugin built: $GAME/BepInEx/plugins/KeyboardChefs.dll"
+if [ -f "$HERE/KeyboardChefs.dll" ]; then
+    cp "$HERE/KeyboardChefs.dll" "$GAME/BepInEx/plugins/"
+    echo "Plugin copied: $GAME/BepInEx/plugins/KeyboardChefs.dll"
+else
+    [ -x "$DOTNET" ] || { echo ".NET SDK not found; install it into ~/.dotnet (see README)" >&2; exit 1; }
+    CSC="$(ls -d "$(dirname "$(readlink -f "$DOTNET")")"/sdk/*/Roslyn/bincore/csc.dll | tail -1)"
+    refs=()
+    for f in "$MANAGED"/*.dll "$GAME/BepInEx/core/BepInEx.dll"; do refs+=("-r:$f"); done
+    "$DOTNET" "$CSC" -nologo -noconfig -nostdlib -target:library -langversion:7.3 -optimize \
+        -out:"$GAME/BepInEx/plugins/KeyboardChefs.dll" "${refs[@]}" "$HERE/KeyboardChefs.cs"
+    echo "Plugin built: $GAME/BepInEx/plugins/KeyboardChefs.dll"
+fi
 echo
 echo "Steam > Overcooked! 2 > Properties > Launch Options:"
 echo "\"$GAME/run_bepinex.sh\" %command%"

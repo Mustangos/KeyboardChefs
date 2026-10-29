@@ -49,21 +49,15 @@ So the pads live inside the game. Steam, the OS and other games never see them.
 
 ## Install on macOS
 
-Requirements: Overcooked! 2 from Steam and a .NET SDK to compile the plugin, e.g. without sudo:
+Download `KeyboardChefs-<version>.zip` from
+[Releases](https://github.com/Mustangos/KeyboardChefs/releases), unzip it and run in Terminal:
 
 ```bash
-curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel LTS --install-dir ~/.dotnet
+bash ~/Downloads/KeyboardChefs-1.1.0/install.sh
 ```
 
-Then:
-
-```bash
-./install.sh
-```
-
-It downloads BepInEx 5.4.23.5 for macOS (checksum-verified) into the game folder once, compiles
-`KeyboardChefs.cs` against the game's own assemblies and copies the DLL to `BepInEx/plugins/`.
-Re-run it after editing the source. Set `OC2_DIR` if the game lives elsewhere.
+It downloads BepInEx 5.4.23.5 for macOS (checksum-verified) into the game folder once and copies
+`KeyboardChefs.dll` to `BepInEx/plugins/`. Set `OC2_DIR` if the game lives elsewhere.
 
 Once, in Steam: Overcooked! 2 > Properties > Launch Options, paste the line `install.sh` prints:
 
@@ -74,14 +68,35 @@ Once, in Steam: Overcooked! 2 > Properties > Launch Options, paste the line `ins
 Without it the game starts without the plugin. Starting `run_bepinex.sh` by hand also loses the
 plugin, because the game restarts itself through Steam (unless `SteamAppId=728880` is set).
 
+### From source
+
+In a clone of this repository without a prebuilt DLL, `install.sh` compiles `KeyboardChefs.cs`
+against the game's own assemblies. That needs a .NET SDK, e.g. without sudo:
+
+```bash
+curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel LTS --install-dir ~/.dotnet
+./install.sh
+```
+
+Re-run `./install.sh` after editing the source.
+
 ## Install on Linux or Windows (untested)
 
 1. Install BepInEx 5 (x64) into the Overcooked! 2 folder as the
    [BepInEx docs](https://docs.bepinex.dev/articles/user_guide/installation/index.html) describe.
    On Linux this includes the `run_bepinex.sh` Steam launch option.
-2. Build `KeyboardChefs.dll` with the `csc` command from `install.sh`, pointing the references at the
-   game's `*_Data/Managed` folder and `BepInEx/core/BepInEx.dll`.
-3. Copy the DLL to `BepInEx/plugins/` and start the game.
+2. Copy `KeyboardChefs.dll` from the release zip to `BepInEx/plugins/` and start the game.
+
+## Install with an AI coding agent
+
+Paste this into an agent that can run commands on your computer (Claude Code, Codex and similar):
+
+```
+Install the KeyboardChefs plugin for Overcooked! 2 on this computer, following the README at
+https://github.com/Mustangos/KeyboardChefs. Use the latest release zip, install BepInEx 5 into
+the game folder, put KeyboardChefs.dll into BepInEx/plugins and tell me the Steam launch option
+to set. Ask me before downloading or installing anything, and do not modify the game's own files.
+```
 
 ## Use
 
