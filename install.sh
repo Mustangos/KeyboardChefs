@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installs BepInEx into Overcooked! 2 and builds Keyboard2Gamepad.dll into its plugins folder.
+# Installs BepInEx into Overcooked! 2 and builds KeyboardChefs.dll into its plugins folder.
 set -euo pipefail
 
 GAME="${OC2_DIR:-$HOME/Library/Application Support/Steam/steamapps/common/Overcooked! 2}"
@@ -28,8 +28,8 @@ refs=()
 for f in "$MANAGED"/*.dll "$GAME/BepInEx/core/BepInEx.dll"; do refs+=("-r:$f"); done
 mkdir -p "$GAME/BepInEx/plugins"
 "$DOTNET" "$CSC" -nologo -noconfig -nostdlib -target:library -langversion:7.3 -optimize \
-    -out:"$GAME/BepInEx/plugins/Keyboard2Gamepad.dll" "${refs[@]}" "$HERE/Keyboard2Gamepad.cs"
-echo "Plugin built: $GAME/BepInEx/plugins/Keyboard2Gamepad.dll"
+    -out:"$GAME/BepInEx/plugins/KeyboardChefs.dll" "${refs[@]}" "$HERE/KeyboardChefs.cs"
+echo "Plugin built: $GAME/BepInEx/plugins/KeyboardChefs.dll"
 echo
 echo "Steam > Overcooked! 2 > Properties > Launch Options:"
 echo "\"$GAME/run_bepinex.sh\" %command%"

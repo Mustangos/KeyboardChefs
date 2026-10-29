@@ -1,16 +1,35 @@
-# Keyboard2Gamepad
+# KeyboardChefs
 
-A third Overcooked! 2 player on a Mac with no gamepad: a small BepInEx plugin adds a virtual
-gamepad inside the game and drives it with keyboard keys. Players 1 and 2 keep the game's own
-split-keyboard controls.
+More Overcooked! 2 players on the keyboard. KeyboardChefs is a small BepInEx plugin that adds up
+to three virtual gamepads inside the game, each driven by its own keys, so a third or fourth local
+player can join without a controller.
 
-Personal, single-machine setup. Tested on a MacBook Pro M4, macOS 26.6.2, Overcooked! 2 from Steam
-(Unity 2017.4.8, x86_64 under Rosetta), BepInEx 5.4.23.5.
+- Players 1 and 2: the game's own split keyboard (WASD and arrows).
+- Players 3 and 4: KeyboardChefs pads, set up in an in-game menu.
 
-## Why not a real system-wide virtual gamepad
+## Platforms
 
-The original goal was a virtual HID gamepad that macOS and Steam see. That is not possible on a
-stock Mac without Apple's approval:
+| Platform | Status |
+|---|---|
+| macOS (Apple Silicon, game runs under Rosetta) | tested on a MacBook Pro M4, macOS 26.6.2 |
+| Linux | should work, not tested; install by hand (below) |
+| Windows | should work, not tested; install by hand (below) |
+
+The plugin is plain .NET 3.5 code, so the same `KeyboardChefs.dll` loads on every platform. Only
+the BepInEx package and the way the game is launched differ. `install.sh` handles macOS only.
+
+## How it works
+
+Overcooked! 2 (Unity 2017.4) reads controllers through the InControl library. InControl accepts
+devices created in code (`InputManager.AttachDevice`), and the game turns every attached device
+into a joinable pad (`PCPadInputProvider.OnDeviceAttached`). Each KeyboardChefs pad is such a
+device; every frame it reads its keys with Unity's `Input.GetKey` and reports them as gamepad
+buttons and stick directions. No game file is modified; BepInEx loads the plugin at startup.
+
+## Why not a system-wide virtual gamepad (macOS)
+
+The first idea was a virtual HID gamepad that macOS and Steam see. That is not possible on a stock
+Mac without Apple's approval:
 
 - Creating a virtual HID device (`IOHIDUserDeviceCreateWithProperties`, CoreHID `HIDVirtualDevice`)
   requires the entitlement `com.apple.developer.hid.virtual.device`.
@@ -19,104 +38,104 @@ stock Mac without Apple's approval:
 - The entitlement is restricted. A binary that claims it without an Apple-issued provisioning
   profile is killed by AMFI at launch.
 - Karabiner's signed DriverKit extension only offers a virtual keyboard and pointing device.
-- The remaining route, disabling SIP and AMFI, weakens the whole Mac and was ruled out.
+- The remaining route, disabling SIP and AMFI, weakens the whole Mac.
 
-Tested on this Mac:
-
-| Test | Result |
+| Test on macOS 26.6.2 | Result |
 |---|---|
 | `IOHIDUserDeviceCreateWithProperties` as a normal user | returns NULL |
 | same binary ad-hoc signed with the entitlement | killed at launch (exit 137, SIGKILL) |
 
-Overcooked! 2 reads controllers through InControl, which supports devices added in code
-(`InputManager.AttachDevice`), and the game registers every device InControl attaches
-(`PCPadInputProvider.OnDeviceAttached`). So the virtual gamepad lives inside the game instead.
-Steam and macOS never see it.
+So the pads live inside the game. Steam, the OS and other games never see them.
 
-## Requirements
+## Install on macOS
 
-- Overcooked! 2 from Steam
-- .NET SDK (any recent version) to compile the plugin, e.g. without sudo:
+Requirements: Overcooked! 2 from Steam and a .NET SDK to compile the plugin, e.g. without sudo:
 
-  ```bash
-  curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel LTS --install-dir ~/.dotnet
-  ```
+```bash
+curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel LTS --install-dir ~/.dotnet
+```
 
-## Install
+Then:
 
 ```bash
 ./install.sh
 ```
 
 It downloads BepInEx 5.4.23.5 for macOS (checksum-verified) into the game folder once, compiles
-`Keyboard2Gamepad.cs` against the game's own assemblies and copies the DLL to
-`BepInEx/plugins/`. Re-run it after editing the source. Set `OC2_DIR` if the game lives elsewhere.
+`KeyboardChefs.cs` against the game's own assemblies and copies the DLL to `BepInEx/plugins/`.
+Re-run it after editing the source. Set `OC2_DIR` if the game lives elsewhere.
 
-Then, once, in Steam: Overcooked! 2 > Properties > Launch Options, paste the line `install.sh` prints:
+Once, in Steam: Overcooked! 2 > Properties > Launch Options, paste the line `install.sh` prints:
 
 ```
 "/Users/<you>/Library/Application Support/Steam/steamapps/common/Overcooked! 2/run_bepinex.sh" %command%
 ```
 
-Without it the game starts without the plugin. Launching `run_bepinex.sh` directly also does not
-work: the game restarts itself through Steam and drops the mod (unless `SteamAppId=728880` is set).
+Without it the game starts without the plugin. Starting `run_bepinex.sh` by hand also loses the
+plugin, because the game restarts itself through Steam (unless `SteamAppId=728880` is set).
 
-## Default keys
+## Install on Linux or Windows (untested)
 
-| Gamepad | Key | Overcooked! 2 |
+1. Install BepInEx 5 (x64) into the Overcooked! 2 folder as the
+   [BepInEx docs](https://docs.bepinex.dev/articles/user_guide/installation/index.html) describe.
+   On Linux this includes the `run_bepinex.sh` Steam launch option.
+2. Build `KeyboardChefs.dll` with the `csc` command from `install.sh`, pointing the references at the
+   game's `*_Data/Managed` folder and `BepInEx/core/BepInEx.dll`.
+3. Copy the DLL to `BepInEx/plugins/` and start the game.
+
+## Use
+
+`F1` (`fn+F1` on a MacBook) opens and closes the KeyboardChefs menu. For 10 seconds after the game
+starts, a hint at the top left names the key.
+
+- Tick **Pad 1 / 2 / 3** to plug a pad in, untick to unplug it.
+- Click a key, then press the new one. `Esc` cancels, `Backspace` clears.
+- Yellow keys are used twice: by another pad or by the game's own keyboard controls. Hover one to
+  see where.
+- Pads send nothing while the menu is open. Close it, then join in the lobby by pressing the pad's
+  A key, like with a real controller.
+- On macOS a small white cross marks where clicks land. Aim with it, not with the mouse pointer
+  (see Known limitations).
+
+Settings are saved to `BepInEx/config/keyboardchefs.cfg` in the game folder.
+
+### Default keys
+
+| Control | Pad 1 | Pad 2 (numeric keypad) |
 |---|---|---|
-| Left stick up / left / down / right | `T` / `F` / `G` / `H` | move |
-| A | `O` | pick up / put down |
-| X | `I` | chop / throw |
-| B | `P` | dash |
-| Y | `U` | emote (unverified) |
+| Move up / down / left / right | `T` / `G` / `F` / `H` | `8` / `5` / `4` / `6` |
+| A (pick up / put down) | `O` | `0` |
+| B (dash) | `P` | `+` |
+| X (chop / throw) | `I` | `.` |
+| Y (emote) | `U` | `-` |
 | LB / RB | `V` / `,` | |
-| Start/stop the virtual gamepad | `F8` (`fn+F8` on a MacBook) | |
 
-The game's split keyboard uses WASD, E, T, Tab, Left Shift/Control/Alt (player 1) and the arrows,
-Right Shift, Right Alt, `/`, `I`, `P`, keypad Enter (player 2). `T`, `I` and `P` are therefore
-shared with the keyboard players (T = player 1 left stick press, I = player 2 Y, P = player 2
-right stick press); rebind those in the game's keyboard options to separate them.
+Pad 1 is on by default; pads 2 and 3 start unplugged. The game's split keyboard uses WASD, E, T,
+Tab, Left Shift/Control/Alt (player 1) and the arrows, Right Shift, Right Alt, `/`, `I`, `P`,
+keypad Enter (player 2), so pad 1 shares `T`, `I` and `P` with them. Rebind either side to
+separate them.
 
-## Configure
+## Config file options
 
-Edit `BepInEx/config/local.keyboard2gamepad.cfg` in the game folder (created on first launch).
-Values are Unity `KeyCode` names; `None` disables a control. Set `LogKeys = true` to log the name
-of every key you press. Restart the game after changes.
+`[General]` in `keyboardchefs.cfg`:
 
-The plugin does not hide its keys from the game. On start it logs the game's keyboard bindings
-and warns about any key that both uses.
+| Option | Default | Meaning |
+|---|---|---|
+| `MenuKey` | `F1` | shows/hides the menu |
+| `ShowMenuOnStart` | `false` | opens the menu when the game starts instead of showing the hint |
+| `LogKeys` | `false` | logs the Unity `KeyCode` name of every key press |
+| `SelfTest` | `false` | debug: pulses A on pad 1 until the game engages it and saves `BepInEx/selftest.png` |
 
-`SelfTest = true` makes the virtual gamepad pulse A by itself until the game engages it (at the
-title screen it becomes the first player). It checks the plugin without anyone at the keyboard;
-keep it off for play.
+`[Pad1]` to `[Pad3]` hold `Enabled` and one Unity `KeyCode` name per control (`None` = unused).
 
 ## Logs
 
-`BepInEx/LogOutput.log` in the game folder. Lines to look for:
+`BepInEx/LogOutput.log` in the game folder:
 
-- `Virtual gamepad attached.`: InControl has the device.
-- `Overcooked registered the virtual gamepad`: the game sees it as a pad.
-- `Key X is also bound to keyboard ...`: a key conflict.
-- `Overcooked engaged the virtual gamepad as pad ...`: the pad joined as a player.
-
-## Test results (2026-10-29)
-
-Automated, game launched with `SteamAppId=728880 ./run_bepinex.sh`:
-
-| Check | Result |
-|---|---|
-| BepInEx loads under Rosetta on macOS 26.6.2 | yes, `Chainloader startup complete` |
-| Plugin attaches the device to InControl | yes, `Virtual gamepad attached. InControl devices: 1` |
-| Game creates an input set for it | yes, `Overcooked registered the virtual gamepad (2 input sets)` |
-| Virtual A press engages it as a player | yes, `Overcooked engaged the virtual gamepad as pad One` (SelfTest, title screen) |
-| Earlier defaults (`UHJK`, `N B M G`) free of the game's bindings | yes, no conflict warnings |
-
-Needs a person at the keyboard (not verified yet):
-
-- launching through the Steam launch option,
-- three players joining a local game (two on split keyboard, one on these keys),
-- moving, picking up, chopping and throwing with all three at once.
+- `Pad N attached.`: InControl has the device.
+- `Overcooked registered pad N.`: the game sees it as a pad.
+- `Overcooked engaged pad N as ...`: the pad joined as a player.
+- warnings name keys that are used twice.
 
 ## Uninstall
 
@@ -125,9 +144,41 @@ Remove the Steam launch option. To remove everything, delete `BepInEx/`, `run_be
 
 ## Known limitations
 
-- Works only in Overcooked! 2; Steam, macOS and other games do not see the gamepad.
-- Mapped keys are not suppressed; pick keys the game's keyboard players do not use.
-- Keys are read by Unity, so they work only while the game window is focused. Losing focus or
-  pressing the toggle key releases every control.
-- Key names follow Unity's `KeyCode`; on non-US layouts verify them with `LogKeys`.
+- Works only in Overcooked! 2. Steam, the OS and other games do not see the pads.
+- Pad keys are not hidden from the game. Pick keys the keyboard players do not use.
+- Keys work only while the game window is focused; losing focus releases every control.
+- Key names follow Unity's `KeyCode`. On non-US layouts check them with `LogKeys`.
+- In fullscreen on a MacBook with a notch, the game's Unity 2017 places the mouse about half the
+  notch height (some 20 points) above the real pointer. The menu draws a white cross where Unity
+  sees the mouse, so clicks still land.
+- Overcooked! 2 has four local player slots, so at most two pads are useful next to a split keyboard.
 - A game update that changes InControl or `PCPadInputProvider` can break the plugin.
+
+## Test results
+
+v1.0 (single pad), macOS 26.6.2, 2026-10-29:
+
+| Check | Result |
+|---|---|
+| BepInEx loads under Rosetta | yes |
+| Pad attached, registered and engaged by the game | yes, from the plugin log (`SelfTest`) |
+| Steam launch option loads the plugin | yes |
+| Three players (split keyboard + pad) playing a level | yes, played by hand |
+
+v1.1 (menu, up to three pads), same Mac, 2026-10-29:
+
+| Check | Result |
+|---|---|
+| Menu hidden at game start, hint names `F1` | yes, in-game screenshot (`SelfTest`) |
+| Menu (`ShowMenuOnStart`) opaque, shows the keys of all three pads | yes, in-game screenshot (`SelfTest`) |
+| Keys shared with the game's keyboard controls are marked yellow and logged | yes (`T`, `I`, `P` on pad 1) |
+| Pads 1 and 2 attached and registered by the game at once | yes, from the plugin log |
+| Pad 1 engaged as a player | yes, from the plugin log (`SelfTest`) |
+| White cross on macOS sits inside the control Unity highlights under the mouse | yes, in-game screenshot |
+| Opening with `F1`, rebinding by click, ticking pads | yes, by hand |
+| Playing a level with two pads | not tested yet |
+
+## License
+
+MIT, see [LICENSE](LICENSE). Not affiliated with Team17 or Ghost Town Games. Overcooked! 2,
+InControl and BepInEx belong to their respective owners; this repository contains none of their code.
