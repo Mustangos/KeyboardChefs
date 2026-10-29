@@ -7,6 +7,8 @@ player can join without a controller.
 - Players 1 and 2: the game's own split keyboard (WASD and arrows).
 - Players 3 and 4: KeyboardChefs pads, set up in an in-game menu.
 
+![Four local players in the Overcooked! 2 lobby with the KeyboardChefs menu open](docs/screenshot.jpg)
+
 ## Platforms
 
 | Platform | Status |
